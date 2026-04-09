@@ -14,6 +14,7 @@ urlpatterns = [
 
     path('boardgame/<int:pk>', BoardGameViewSet.as_view({
         'get': 'retrieve',
+        'put': 'update',
         'patch': 'partial_update',
         'delete': 'destroy',
     })),

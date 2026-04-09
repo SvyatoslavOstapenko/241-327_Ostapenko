@@ -7,12 +7,12 @@ from faker import Faker
 from .models import BoardGame
 
 
-fk = Faker()
+fk = Faker("ru_RU")
 
 
 def gentestdata():
     with transaction.atomic():
-        for _ in range(30):
+        for _ in range(120):
             game = BoardGame()
             game.title = f"{fk.word().capitalize()} {fk.word().capitalize()}"
             game.publisher = fk.company()[:120]
