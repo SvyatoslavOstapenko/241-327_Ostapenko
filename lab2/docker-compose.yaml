@@ -1,0 +1,63 @@
+services:
+  postgres-service:
+    image: postgres:17-alpine
+    container_name: lab2-postgres
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migration-service:
+    build:
+      context: ./backend
+    container_name: lab2-migration
+    env_file:
+      - .env
+    depends_on:
+      postgres-service:
+        condition: service_healthy
+    volumes:
+      - static_volume:/app/staticfiles
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py createsuperuser --noinput || true"
+
+  backend-service:
+    build:
+      context: ./backend
+    container_name: lab2-backend
+    env_file:
+      - .env
+    depends_on:
+      postgres-service:
+        condition: service_healthy
+      migration-service:
+        condition: service_completed_successfully
+    expose:
+      - "8000"
+    command: gunicorn lab1.wsgi:application --bind 0.0.0.0:8000
+
+  nginx-service:
+    build:
+      context: ./nginx
+    container_name: lab2-nginx
+    depends_on:
+      - backend-service
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - static_volume:/static:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+
+volumes:
+  postgres_data:
+  static_volume:
